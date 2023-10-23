@@ -1,17 +1,21 @@
 const products = document.querySelector('.products');
 const title = document.querySelector('#title');
-const price = document.querySelector('#Price'); 
+const price = document.querySelector('#Price');
 const category = document.querySelector('#Category');
-const desc = document.querySelector('#Desc'); 
+const desc = document.querySelector('#Desc');
 const add_btn = document.querySelector('#add_btn');
-const perPage = 6; 
+const perPage = 6;
 let currentPage = 1;
+let isEditing = false;
+let allProducts = [];
+let cart = [];
 
 const getProducts = () => {
     fetch('https://fakestoreapi.com/products')
         .then((res) => res.json())
         .then((json) => {
             if (json) {
+                allProducts = json;
                 products.innerHTML = '';
                 const startIndex = (currentPage - 1) * perPage;
                 const endIndex = startIndex + perPage;
@@ -25,6 +29,7 @@ const getProducts = () => {
                         <p class="price">Price: $${item.price}</p>
                         <button id="del-btn" onclick="delProduct('${item.id}')">Delete</button>
                         <button class="edit-btn">Edit</button>
+                        <button id="add-to-cart-btn" onclick="addToCart('${item.id}')">Add to Cart</button>
                     </div>
                     `;
                 });
@@ -53,7 +58,6 @@ function renderPagination(totalItems) {
     }
 }
 
-
 getProducts();
 
 add_btn.addEventListener('click', (event) => {
@@ -65,7 +69,7 @@ function postData(title, price, category, image, desc) {
     const data = {
         title,
         price,
-        description: desc, 
+        description: desc,
         image,
         category,
     };
@@ -88,6 +92,7 @@ function addProduct({ title, price, description, image, category }) {
     })
         .then((res) => res.json())
         .then((json) => {
+            allProducts.push(json);
             products.innerHTML += `
             <div class="product" data-id="${json.id}" data-category="${json.category}">
                 <img src="${json.image}" alt="">
@@ -96,12 +101,12 @@ function addProduct({ title, price, description, image, category }) {
                 <p class="price">Price: $${json.price}</p>
                 <button id="del-btn" onclick="delProduct('${json.id}')">Delete</button>
                 <button class="edit-btn">Edit</button>
+                <button id="add-to-cart-btn" onclick="addToCart('${json.id}')">Add to Cart</button>
             </div>
             `;
         });
 }
 
-// Удаление товара
 function delProduct(productId) {
     const productDiv = document.querySelector(`.product[data-id="${productId}"]`);
     if (productDiv) {
@@ -109,7 +114,6 @@ function delProduct(productId) {
     }
 }
 
-// Редактирование товара
 document.addEventListener("click", (event) => {
     if (event.target.classList.contains("edit-btn")) {
         const productDiv = event.target.closest(".product");
@@ -197,7 +201,6 @@ function handleSaveClick(productId, productDiv, inputTitle, inputDescription, in
         });
 }
 
-// Поиск
 const searchInput = document.querySelector('#search-input');
 searchInput.addEventListener('input', handleSearch);
 
@@ -216,7 +219,6 @@ function handleSearch() {
     });
 }
 
-// Фильтр по категории
 const categorySelect = document.querySelector('#categorySelect');
 categorySelect.addEventListener('change', () => {
     const selectedCategory = categorySelect.value.toLowerCase();
@@ -226,4 +228,39 @@ categorySelect.addEventListener('change', () => {
         const productCategory = product.getAttribute('data-category').toLowerCase();
         product.style.display = selectedCategory === 'all' || productCategory === selectedCategory ? 'block' : 'none';
     });
+});
+
+// Добавленная функциональность корзины
+const cartModal = document.querySelector('#cartModal');
+const cartContent = document.querySelector('#cartContent');
+const closeCartButton = document.querySelector('#closeCart');
+
+function addToCart(productId) {
+    const product = allProducts.find(item => item.id == productId);
+    if (product) {
+        cart.push(product);
+        displayCart();
+    }
+}
+
+function displayCart() {
+    cartContent.innerHTML = '';
+    let total = 0;
+
+    cart.forEach((item) => {
+        const cartItem = document.createElement('div');
+        cartItem.className = 'cart-item';
+        cartItem.innerHTML = `
+            <h3>${item.title}</h3>
+            <p>${item.description}</p>
+            <p>Price: $${item.price}</p>
+        `;
+        cartContent.appendChild(cartItem);
+    });
+
+    cartModal.style.display = 'block';
+}
+
+closeCartButton.addEventListener('click', () => {
+    cartModal.style.display = 'none';
 });
